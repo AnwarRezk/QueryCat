@@ -1,0 +1,18 @@
+{
+  "name": "agentic-rag",
+  "version": "1.0.0",
+  "description": "Personal AI document assistant — private ChatGPT for your own files",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"CLIENT,SERVER\" --prefix-colors \"cyan,magenta\" \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && uv venv && uv pip install -r requirements.txt",
+    "install:all": "npm run install:client && npm run install:server",
+    "build:client": "cd client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

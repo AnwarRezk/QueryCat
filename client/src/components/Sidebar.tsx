@@ -23,7 +23,11 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      const res = await fetch('/api/documents');
+      // Scope document list to the current session
+      const url = currentSessionId
+        ? `/api/documents?session_id=${encodeURIComponent(currentSessionId)}`
+        : '/api/documents';
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setDocuments(data.documents || []);

@@ -78,7 +78,19 @@ async def similarity_search(
     return results
 
 
-def get_retriever(k: int = 4):
-    """Return a LangChain retriever interface for the vector store."""
+def get_retriever(k: int = 4, session_id: str | None = None):
+    """
+    Return a LangChain retriever interface for the vector store.
+
+    If session_id is provided, retrieval is scoped to only the documents
+    uploaded within that chat session via ChromaDB metadata filtering.
+    If session_id is None, all documents are searched (global mode).
+    """
     store = get_vector_store()
-    return store.as_retriever(search_kwargs={"k": k})
+    search_kwargs: dict = {"k": k}
+    if session_id:
+        search_kwargs["filter"] = {"session_id": session_id}
+        logger.debug("Retriever scoped to session: %s (k=%d)", session_id, k)
+    else:
+        logger.debug("Retriever in global mode (k=%d)", k)
+    return store.as_retriever(search_kwargs=search_kwargs)

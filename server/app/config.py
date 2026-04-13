@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     sessions_dir: str = "./sessions"
 
     # ── Retrieval ─────────────────────────────────────────────────────────
-    retrieval_k: int = 4           # Number of chunks to retrieve per query
+    retrieval_k: int = 8           # Number of chunks to retrieve per query (higher for multi-doc comparison)
     chunk_size: int = 1000         # Characters per chunk
     chunk_overlap: int = 200       # Overlap between chunks
     max_history_messages: int = 20  # Messages to keep in session memory

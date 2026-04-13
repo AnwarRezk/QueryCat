@@ -66,11 +66,11 @@ function App() {
           className="flex-1 overflow-y-auto scrollbar-hide flex flex-col relative"
         >
           {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col pt-12 pb-32">
+            <div className="flex-1 flex flex-col pt-12 pb-48">
                <WelcomeScreen onExampleClick={handleSend} />
             </div>
           ) : (
-            <div className="w-full max-w-4xl mx-auto px-4 py-8 pb-32 flex flex-col min-h-full justify-end">
+            <div className="w-full max-w-4xl mx-auto px-4 pt-8 pb-48 flex flex-col gap-1">
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
                   <ChatMessage key={msg.id} message={msg} />
@@ -101,7 +101,7 @@ function App() {
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-background via-background/95 to-transparent pb-6 pt-12 px-4 z-20 pointer-events-none flex flex-col items-center justify-end">
           <div className="pointer-events-auto w-full max-w-4xl mx-auto flex flex-col">
             <div className="w-full mt-2">
-              <ChatInput onSend={handleSend} onUploadSuccess={handleUploadSuccess} disabled={isLoading} />
+              <ChatInput onSend={handleSend} onUploadSuccess={handleUploadSuccess} sessionId={sessionId} disabled={isLoading} />
             </div>
           </div>
         </div>

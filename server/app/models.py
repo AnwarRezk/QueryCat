@@ -2,6 +2,7 @@
 Pydantic v2 request/response models for the AgenticRag API.
 """
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,12 +19,33 @@ class ChatRequest(BaseModel):
 # ── Response Models ───────────────────────────────────────────────────────────
 
 class UploadResponse(BaseModel):
-    """Response from POST /api/upload."""
+    """Response from POST /api/upload (kept for backwards compat)."""
 
     success: bool
     document_id: str
     filename: str
     chunk_count: int
+    message: str
+
+
+class FileUploadResult(BaseModel):
+    """Result for a single file within a multi-file upload."""
+
+    success: bool
+    filename: str
+    document_id: Optional[str] = None
+    chunk_count: int = 0
+    file_type: Optional[str] = None
+    error: Optional[str] = None
+
+
+class MultiUploadResponse(BaseModel):
+    """Response from POST /api/upload (multi-file, Phase 2)."""
+
+    results: list[FileUploadResult]
+    total_files: int
+    successful: int
+    total_chunks: int
     message: str
 
 
@@ -35,6 +57,8 @@ class DocumentInfo(BaseModel):
     uploaded_at: str
     chunk_count: int
     size_bytes: int
+    file_type: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class DocumentListResponse(BaseModel):
@@ -50,7 +74,7 @@ class HealthResponse(BaseModel):
     status: str
     provider: str
     model: str
-    version: str = "1.0.0"
+    version: str = "2.0.0"
 
 
 class ErrorResponse(BaseModel):

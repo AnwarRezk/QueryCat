@@ -1,17 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, Paperclip, Loader2, CheckCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowUp, Paperclip, Loader2, CheckCircle, X, FileText, File } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   onUploadSuccess: () => void;
+  sessionId: string;
   disabled: boolean;
 }
 
-export function ChatInput({ onSend, onUploadSuccess, disabled }: ChatInputProps) {
+interface PendingFile {
+  id: string;        // local UI id
+  file: File;
+  name: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  documentId?: string; // server-assigned document id (set on success)
+  error?: string;
+}
+
+const FILE_ICONS: Record<string, React.ReactNode> = {
+  pdf: <FileText className="w-3 h-3" />,
+  docx: <File className="w-3 h-3" />,
+  md: <File className="w-3 h-3" />,
+};
+
+function getFileIcon(filename: string): React.ReactNode {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  return FILE_ICONS[ext] ?? <File className="w-3 h-3" />;
+}
+
+export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: ChatInputProps) {
   const [text, setText] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'success' | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,31 +61,78 @@ export function ChatInput({ onSend, onUploadSuccess, disabled }: ChatInputProps)
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type !== 'application/pdf') {
-        alert('Only PDF files are supported.');
-        return;
+  const uploadFile = async (pending: PendingFile) => {
+    setPendingFiles(prev =>
+      prev.map(p => p.id === pending.id ? { ...p, status: 'uploading' } : p)
+    );
+
+    const formData = new FormData();
+    formData.append('files', pending.file);
+    formData.append('session_id', sessionId);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (res.ok && data.successful > 0) {
+        const documentId = data.results?.[0]?.document_id;
+        setPendingFiles(prev =>
+          prev.map(p => p.id === pending.id ? { ...p, status: 'success', documentId } : p)
+        );
+        onUploadSuccess();
+        // Do NOT auto-clear — keep pill visible so user can remove it
+      } else {
+        const result = data.results?.[0];
+        setPendingFiles(prev =>
+          prev.map(p =>
+            p.id === pending.id
+              ? { ...p, status: 'error', error: result?.error ?? 'Upload failed' }
+              : p
+          )
+        );
       }
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('file', file);
+    } catch {
+      setPendingFiles(prev =>
+        prev.map(p =>
+          p.id === pending.id ? { ...p, status: 'error', error: 'Network error' } : p
+        )
+      );
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const newFiles: PendingFile[] = Array.from(e.target.files).map(file => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file,
+      name: file.name,
+      status: 'pending' as const,
+    }));
+
+    // Add to pending list immediately
+    setPendingFiles(prev => [...prev, ...newFiles]);
+
+    // Upload each immediately
+    for (const pending of newFiles) {
+      await uploadFile(pending);
+    }
+
+    // Reset file input so same file can be reselected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = async (pending: PendingFile) => {
+    // If already uploaded to server, delete it from the knowledge base
+    if (pending.status === 'success' && pending.documentId) {
       try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (res.ok) {
-          onUploadSuccess();
-          setUploadStatus('success');
-          setTimeout(() => setUploadStatus(null), 2000);
-        } else {
-          alert('Upload failed');
-        }
-      } catch (err) {
-        alert('An error occurred during upload.');
-      } finally {
-        setIsUploading(false);
+        await fetch(`/api/documents/${pending.documentId}`, { method: 'DELETE' });
+        onUploadSuccess(); // Refresh sidebar doc list
+      } catch {
+        // Ignore — remove from UI regardless
       }
     }
+    setPendingFiles(prev => prev.filter(p => p.id !== pending.id));
   };
 
   useEffect(() => {
@@ -76,32 +143,97 @@ export function ChatInput({ onSend, onUploadSuccess, disabled }: ChatInputProps)
 
   return (
     <div className="relative w-full max-w-4xl mx-auto xl:px-0">
-      <form onSubmit={handleSubmit} className="relative flex items-end w-full glass-panel border focus-within:border-accent-cyan/50 transition-colors p-2 pb-2">
+      {/* File Pills Area */}
+      <AnimatePresence>
+        {pendingFiles.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex flex-wrap gap-2 mb-2 px-1"
+          >
+            {pendingFiles.map(pf => (
+              <motion.div
+                key={pf.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg text-xs font-medium border transition-colors
+                  ${pf.status === 'success'
+                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    : pf.status === 'error'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : pf.status === 'uploading'
+                    ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan'
+                    : 'bg-white/5 border-white/10 text-gray-300'
+                  }`}
+                title={pf.status === 'error' ? pf.error : pf.name}
+              >
+                {pf.status === 'uploading'
+                  ? <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                  : pf.status === 'success'
+                  ? <CheckCircle className="w-3 h-3 shrink-0" />
+                  : getFileIcon(pf.name)
+                }
+                <span className="max-w-[120px] truncate">{pf.name}</span>
+                {pf.status !== 'uploading' && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile(pf)}
+                    title={pf.status === 'success' ? 'Remove from knowledge base' : 'Dismiss'}
+                    className="p-0.5 rounded hover:bg-white/10 transition-colors shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Input Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="relative flex items-end w-full glass-panel border focus-within:border-accent-cyan/50 transition-colors p-2"
+      >
         <textarea
           ref={textareaRef}
           value={text}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder="Ask a question about your documents..."
+          placeholder="Ask a question, or attach a document with the 📎 icon..."
           className="w-full max-h-48 min-h-[44px] bg-transparent text-white placeholder-gray-500 rounded-xl resize-none py-3 pl-14 pr-14 focus:outline-none scrollbar-hide"
           rows={1}
         />
-        
-        {/* Attachment Pin Icon */}
+
+        {/* Paperclip attachment button */}
         <div className="absolute left-3 bottom-3">
-          <input type="file" ref={fileInputRef} className="hidden" accept=".pdf" onChange={handleFileSelect} />
-          <button 
-            type="button" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".pdf,.docx,.md"
+            multiple
+            onChange={handleFileSelect}
+          />
+          <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isUploading}
-            title="Attach a PDF Document to Knowledge Base"
-            className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5 transition-all outline-none"
+            disabled={disabled}
+            title="Attach PDF, Word (.docx), or Markdown (.md) files to this conversation"
+            className="p-2 text-gray-400 hover:text-accent-cyan rounded-xl hover:bg-white/5 transition-all outline-none group relative"
           >
-            {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : uploadStatus === 'success' ? <CheckCircle className="w-5 h-5 text-green-400" /> : <Paperclip className="w-5 h-5" />}
+            <Paperclip className="w-5 h-5" />
+            {/* Tooltip */}
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-black/80 text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10">
+              Attach PDF, DOCX, or MD
+            </span>
           </button>
         </div>
 
+        {/* Send button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -112,9 +244,10 @@ export function ChatInput({ onSend, onUploadSuccess, disabled }: ChatInputProps)
           <ArrowUp className="w-5 h-5" />
         </motion.button>
       </form>
+
       <div className="text-center mt-2">
         <p className="text-[11px] text-gray-500 font-medium">
-          DocChat can make mistakes. Check important info.
+          DocChat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
         </p>
       </div>
     </div>

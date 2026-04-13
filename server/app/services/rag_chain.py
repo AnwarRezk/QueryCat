@@ -99,19 +99,23 @@ _CONDENSE_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-# Main QA prompt — instructs the model to answer generally or from context
+# Main QA prompt — handles general chat, document Q&A, and cross-document comparison
 _QA_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are DocChat, a helpful and expert AI assistant. 
+            """You are DocChat, a helpful and expert AI assistant.
 You can answer general questions as well as questions about uploaded documents.
 
 Rules:
-- If the user asks about the uploaded documents, refer strictly to the Context from documents below.
-- Always cite which document (source filename) the information comes from if you use the Context.
-- If the Context does not contain the answer, or if the user asks a general question (like "hello" or coding questions), feel free to answer naturally using your own general knowledge.
+- If the user asks about the uploaded documents, refer to the Context from documents below.
+- When multiple documents are present in the context, you can compare, contrast,
+  and cross-reference them. Clearly label which document each point comes from.
+- Always cite the source filename when referencing document content.
+- If the context does not contain the answer, or if the user asks a general question,
+  answer naturally using your own knowledge.
 - Be concise, clear, and well-structured. Use markdown formatting when helpful.
+- For comparison requests, use structured formats like tables or bullet lists.
 
 Context from documents:
 {context}""",
@@ -122,11 +126,11 @@ Context from documents:
 )
 
 
-def _build_chain():
+def _build_chain(session_id: str | None = None):
     """Build and return the full conversational retrieval chain."""
     settings = get_settings()
     llm = get_llm()
-    retriever = get_retriever(k=settings.retrieval_k)
+    retriever = get_retriever(k=settings.retrieval_k, session_id=session_id)
 
     # Step 1: History-aware retriever — rephrases follow-ups
     history_aware_retriever = create_history_aware_retriever(
@@ -147,6 +151,7 @@ async def stream_rag_response(
 ) -> AsyncGenerator[str, None]:
     """
     Stream tokens from the RAG chain as SSE-formatted data strings.
+    Retrieval is scoped to documents belonging to this session_id.
 
     Yields:
         SSE lines in the format:
@@ -154,7 +159,7 @@ async def stream_rag_response(
           data: {"type": "sources", "documents": [...]}
           data: [DONE]
     """
-    chain = _build_chain()
+    chain = _build_chain(session_id=session_id)
     history = get_session_history(session_id)
 
     full_response = ""

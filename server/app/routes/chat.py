@@ -122,15 +122,52 @@ async def get_session_history_endpoint(session_id: str, settings: Annotated[Sett
         return {"messages": []}
 
 
-@router.delete("/chat/sessions/{session_id}", summary="Delete a chat session")
+@router.delete("/chat/sessions/{session_id}", summary="Delete a chat session and its documents")
 async def delete_session(session_id: str, settings: Annotated[Settings, Depends(get_settings)]):
+    """
+    Delete a chat session completely:
+    1. Removes the session history JSON file
+    2. Deletes all ChromaDB vectors scoped to this session
+    3. Removes document registry entries for this session
+    """
     from app.services.rag_chain import clear_session
+    from app.services.vector_store import get_vector_store
+
     safe_session_id = "".join(c for c in session_id if c.isalnum() or c in ("-", "_"))
+
+    # 1. Delete session history file
     file_path = os.path.join(settings.sessions_dir, f"{safe_session_id}.json")
     if os.path.exists(file_path):
         try:
             os.remove(file_path)
             clear_session(safe_session_id)
-        except OSError:
-            pass
+            logger.info("Deleted session history: %s", safe_session_id)
+        except OSError as e:
+            logger.warning("Could not delete session file %s: %s", file_path, e)
+
+    # 2. Delete all vectors associated with this session
+    try:
+        store = get_vector_store()
+        store._collection.delete(where={"session_id": safe_session_id})
+        logger.info("Deleted vectors for session: %s", safe_session_id)
+    except Exception as e:
+        logger.warning("Could not delete vectors for session %s: %s", safe_session_id, e)
+
+    # 3. Remove document registry entries for this session
+    registry_path = os.path.join(settings.upload_dir, "documents.json")
+    if os.path.exists(registry_path):
+        try:
+            with open(registry_path, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            updated = [doc for doc in registry if doc.get("session_id") != safe_session_id]
+            if len(updated) != len(registry):
+                with open(registry_path, "w", encoding="utf-8") as f:
+                    json.dump(updated, f, indent=2, ensure_ascii=False)
+                logger.info(
+                    "Removed %d document registry entries for session: %s",
+                    len(registry) - len(updated), safe_session_id
+                )
+        except Exception as e:
+            logger.warning("Could not clean up registry for session %s: %s", safe_session_id, e)
+
     return {"status": "ok"}

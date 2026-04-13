@@ -4,6 +4,8 @@ export interface DocumentMetadata {
   uploaded_at: string;
   chunk_count: number;
   size_bytes: number;
+  file_type?: string;
+  session_id?: string;
 }
 
 export interface SourceDocument {

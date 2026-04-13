@@ -25,7 +25,6 @@ A minimal, high-performance RAG application for chatting with your personal docu
    ```bash
    npm run dev
    ```
-   *Access at http://localhost:5173*
 
 ## Deployment (Docker)
 Deploy to any VPS in seconds using the baked-in Caddy reverse proxy:

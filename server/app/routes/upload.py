@@ -11,6 +11,7 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated, List
 
 import aiofiles
@@ -57,7 +58,6 @@ def _save_registry(settings: Settings, registry: list[dict]) -> None:
 
 def _validate_extension(filename: str) -> str:
     """Return lower-case extension or raise HTTPException."""
-    from pathlib import Path
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -97,7 +97,6 @@ async def _process_single_file(
 
         # Save to disk
         upload_id = str(uuid.uuid4())
-        from pathlib import Path
         ext = Path(filename).suffix.lower()
         safe_filename = f"{upload_id}_{filename}"
         file_path = os.path.join(settings.upload_dir, safe_filename)
@@ -133,8 +132,7 @@ async def _process_single_file(
             return FileUploadResult(success=False, filename=filename, error=f"Storage failed: {str(exc)}")
 
         # Record metadata in registry
-        from pathlib import Path as P
-        file_type = P(filename).suffix.lower().lstrip(".")
+        file_type = Path(filename).suffix.lower().lstrip(".")
         registry = _load_registry(settings)
         registry.append(
             {

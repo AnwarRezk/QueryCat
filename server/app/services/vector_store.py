@@ -6,6 +6,7 @@ so no Docker or external server is required.
 Collection name: "documents" — all uploaded PDFs share one collection,
 distinguished by metadata (source filename, upload_id).
 """
+import asyncio
 import logging
 from functools import lru_cache
 from typing import Any
@@ -49,9 +50,7 @@ async def add_documents(documents: list[Document]) -> int:
     Returns the number of documents added.
     """
     store = get_vector_store()
-    # Chroma's add_documents is synchronous; run via executor in production,
-    # but acceptable here as it is called once per upload.
-    ids = store.add_documents(documents)
+    ids = await asyncio.to_thread(store.add_documents, documents)
     logger.info("Added %d chunks to vector store.", len(ids))
     return len(ids)
 
@@ -73,7 +72,7 @@ async def similarity_search(
         List of LangChain Document objects with page_content and metadata.
     """
     store = get_vector_store()
-    results = store.similarity_search(query, k=k, filter=filter)
+    results = await asyncio.to_thread(store.similarity_search, query, k=k, filter=filter)
     logger.debug("Retrieved %d chunks for query.", len(results))
     return results
 

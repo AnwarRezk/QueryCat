@@ -14,6 +14,7 @@ import json
 import logging
 import os
 from collections import defaultdict
+from functools import lru_cache
 from typing import AsyncGenerator
 
 from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
@@ -30,9 +31,13 @@ logger = logging.getLogger(__name__)
 # ── Persistent json conversation store ────────────────────────────────────────
 def _get_session_file_path(session_id: str) -> str:
     settings = get_settings()
-    # basic sanitize
-    safe_session_id = "".join(c for c in session_id if c.isalnum() or c in ("-", "_"))
-    return os.path.join(settings.sessions_dir, f"{safe_session_id}.json")
+    safe_id = sanitize_session_id(session_id)
+    return os.path.join(settings.sessions_dir, f"{safe_id}.json")
+
+
+def sanitize_session_id(session_id: str) -> str:
+    """Sanitize a session ID by removing any non-alphanumeric characters except '-' and '_'."""
+    return "".join(c for c in session_id if c.isalnum() or c in ("-", "_"))
 
 
 def get_session_history(session_id: str) -> list[BaseMessage]:
@@ -137,12 +142,19 @@ def _build_chain(session_id: str | None = None):
         llm, retriever, _CONDENSE_PROMPT
     )
 
-    # Step 2: Document combination chain — formats context into LLM prompt
-    # Specific tag for the final answer stage
-    document_chain = create_stuff_documents_chain(llm, _QA_PROMPT).with_config({"tags": ["final_answer"]})
+    # Step 2: Use cached document combination chain
+    document_chain = _get_document_chain()
 
     # Step 3: Full retrieval chain
     return create_retrieval_chain(history_aware_retriever, document_chain)
+
+
+# Cached document chain (doesn't depend on session_id)
+@lru_cache(maxsize=1)
+def _get_document_chain():
+    """Return a cached document combination chain."""
+    llm = get_llm()
+    return create_stuff_documents_chain(llm, _QA_PROMPT).with_config({"tags": ["final_answer"]})
 
 
 async def stream_rag_response(

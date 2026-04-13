@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, MessageSquare, FileText, Database, Cat, Clock, Trash2 } from 'lucide-react';
 import type { DocumentMetadata } from '../types';
+import { useToast } from '../hooks/useToast';
 
 interface SidebarProps {
   onNewChat: () => void;
@@ -11,9 +12,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, onSelectSession }: SidebarProps) {
+  const { error: showError } = useToast();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [sessions, setSessions] = useState<{ id: string, title: string }[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -32,8 +35,8 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
         const data = await res.json();
         setDocuments(data.documents || []);
       }
-    } catch (err) {
-      console.error("Failed to fetch documents", err);
+    } catch {
+      showError("Failed to load documents");
     } finally {
       setIsLoadingDocs(false);
     }
@@ -46,8 +49,8 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
         const data = await res.json();
         setSessions(data.sessions || []);
       }
-    } catch (err) {
-      console.error("Failed to fetch sessions", err);
+    } catch {
+      showError("Failed to load recent chats");
     }
   };
 
@@ -60,8 +63,25 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
       } else {
         fetchSessions();
       }
-    } catch (err) {
-      console.error("Failed to delete session", err);
+    } catch {
+      showError("Failed to delete chat session");
+    }
+  };
+
+  const handleDeleteDocument = async (e: React.MouseEvent, docId: string) => {
+    e.stopPropagation();
+    setDeletingDocId(docId);
+    try {
+      const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDocuments(prev => prev.filter(d => d.id !== docId));
+      } else {
+        showError("Failed to delete document");
+      }
+    } catch {
+      showError("Failed to delete document");
+    } finally {
+      setDeletingDocId(null);
     }
   };
 
@@ -73,7 +93,7 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
         <div className="w-8 h-8 rounded-lg bg-gradient-glow flex items-center justify-center">
           <Cat className="w-5 h-5 text-white" />
         </div>
-        <span className="text-xl font-semibold tracking-tight text-white">QueryCat</span>
+        <span className="text-xl font-semibold tracking-tight text-white">Query Cat</span>
       </div>
 
       {/* New Chat Button */}
@@ -154,17 +174,27 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex flex-col p-3 rounded-xl bg-surface border border-transparent transition-all text-left cursor-default"
+                  className="flex items-center justify-between p-3 rounded-xl bg-surface border border-transparent transition-all text-left group/doc hover:border-white/10"
                 >
-                  <div className="flex items-center space-x-3 mb-1.5">
-                    <FileText className="w-4 h-4 text-accent-violet shrink-0" />
-                    <span className="text-sm font-medium text-gray-300 truncate">{doc.filename}</span>
+                  <div className="flex flex-col overflow-hidden pr-2">
+                    <div className="flex items-center space-x-3 mb-1">
+                      <FileText className="w-4 h-4 text-accent-violet shrink-0" />
+                      <span className="text-sm font-medium text-gray-300 truncate">{doc.filename}</span>
+                    </div>
+                    <div className="flex items-center pl-7 space-x-2">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-accent-cyan/10 text-accent-cyan font-mono border border-accent-cyan/20">
+                        {doc.chunk_count} chunks
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center pl-7 space-x-2">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-accent-cyan/10 text-accent-cyan font-mono border border-accent-cyan/20">
-                      {doc.chunk_count} chunks
-                    </span>
-                  </div>
+                  <button
+                    onClick={(e) => handleDeleteDocument(e, doc.id)}
+                    disabled={deletingDocId === doc.id}
+                    className="p-1.5 opacity-0 group-hover/doc:opacity-100 hover:bg-white/10 rounded-md transition-all text-red-400 shrink-0 disabled:opacity-50"
+                    title="Delete document from knowledge base"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>

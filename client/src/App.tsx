@@ -8,14 +8,14 @@ import { useChat } from './hooks/useChat';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
-  const [sessionId, setSessionId] = useState(() => Date.now().toString());
+  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
   const [docUpdateCounter, setDocUpdateCounter] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const { messages, sendMessage, isLoading, error, clearMessages, fetchSession } = useChat();
 
   const handleNewChat = () => {
-    setSessionId(Date.now().toString());
+    setSessionId(crypto.randomUUID());
     clearMessages();
   };
 
@@ -34,9 +34,9 @@ function App() {
     setDocUpdateCounter(c => c + 1);
   };
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom (only when messages exist)
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && messages.length > 0) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
         behavior: 'smooth'
@@ -60,47 +60,48 @@ function App() {
           <h2 className="text-sm font-medium text-gray-300">Session: <span className="font-mono text-xs ml-1 text-gray-500">{sessionId}</span></h2>
         </header>
 
-        {/* Scrollable Content */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto scrollbar-hide flex flex-col relative"
-        >
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Scrollable Content or Welcome Screen */}
           {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col pt-12 pb-48">
+            <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
                <WelcomeScreen onExampleClick={handleSend} />
             </div>
           ) : (
-            <div className="w-full max-w-4xl mx-auto px-4 pt-8 pb-48 flex flex-col gap-1">
-              <AnimatePresence initial={false}>
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-                {isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <TypingIndicator />
-                  </motion.div>
-                )}
-                {error && (
-                  <motion.div 
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mx-auto my-4 max-w-xl text-center"
-                  >
-                    {error}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto scrollbar-hide flex flex-col"
+            >
+              <div className="w-full max-w-4xl mx-auto px-4 pt-8 pb-8 flex flex-col gap-1">
+                <AnimatePresence initial={false}>
+                  {messages.map((msg) => (
+                    <ChatMessage key={msg.id} message={msg} />
+                  ))}
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <TypingIndicator />
+                    </motion.div>
+                  )}
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mx-auto my-4 max-w-xl text-center"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Fixed Input Area always visible */}
-        <div className="absolute bottom-0 w-full bg-gradient-to-t from-background via-background/95 to-transparent pb-6 pt-12 px-4 z-20 pointer-events-none flex flex-col items-center justify-end">
-          <div className="pointer-events-auto w-full max-w-4xl mx-auto flex flex-col">
-            <div className="w-full mt-2">
+          {/* Fixed Input Area always visible */}
+          <div className="shrink-0 w-full bg-background pb-4 lg:pb-6 pt-2 px-4 z-20 flex flex-col items-center justify-end">
+            <div className="w-full max-w-4xl mx-auto flex flex-col">
               <ChatInput onSend={handleSend} onUploadSuccess={handleUploadSuccess} sessionId={sessionId} disabled={isLoading} />
             </div>
           </div>

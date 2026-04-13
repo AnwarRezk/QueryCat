@@ -8,7 +8,10 @@ StreamingResponse. Each event is a JSON payload with a "type" field:
   - {"type": "error",   "content": "..."}   — error during generation
   - [DONE]                                  — terminal sentinel
 """
+import hashlib
+import json
 import logging
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -16,7 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from app.config import Settings, get_settings
 from app.models import ChatRequest
-from app.services.rag_chain import stream_rag_response
+from app.services.rag_chain import clear_session, sanitize_session_id, stream_rag_response
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +58,6 @@ async def chat(
     )
 
 
-import os
-import json
-from uuid import uuid4
-
 @router.get("/chat/sessions", summary="List all active chat sessions")
 async def list_sessions(settings: Annotated[Settings, Depends(get_settings)]):
     sessions_dir = settings.sessions_dir
@@ -94,7 +93,7 @@ async def list_sessions(settings: Annotated[Settings, Depends(get_settings)]):
 
 @router.get("/chat/sessions/{session_id}", summary="Get history for a session")
 async def get_session_history_endpoint(session_id: str, settings: Annotated[Settings, Depends(get_settings)]):
-    safe_session_id = "".join(c for c in session_id if c.isalnum() or c in ("-", "_"))
+    safe_session_id = sanitize_session_id(session_id)
     file_path = os.path.join(settings.sessions_dir, f"{safe_session_id}.json")
     
     if not os.path.exists(file_path):
@@ -105,20 +104,22 @@ async def get_session_history_endpoint(session_id: str, settings: Annotated[Sett
             data = json.load(f)
             
         messages = []
-        for item in data:
+        for idx, item in enumerate(data):
             msg_type = item.get("type")
             content = item.get("data", {}).get("content", "")
             if msg_type not in ["human", "ai"]:
                 continue
-                
+
+            # Stable ID based on content + index (not random uuid4)
+            msg_id = hashlib.sha256(f"{idx}:{content[:100]}".encode()).hexdigest()[:16]
             messages.append({
-                "id": str(uuid4()),
+                "id": msg_id,
                 "role": "user" if msg_type == "human" else "ai",
                 "content": content
             })
         return {"messages": messages}
     except Exception as e:
-        logger.error(f"Error reading session {session_id}: {e}")
+        logger.exception("Error reading session %s: %s", session_id, e)
         return {"messages": []}
 
 
@@ -130,10 +131,9 @@ async def delete_session(session_id: str, settings: Annotated[Settings, Depends(
     2. Deletes all ChromaDB vectors scoped to this session
     3. Removes document registry entries for this session
     """
-    from app.services.rag_chain import clear_session
     from app.services.vector_store import get_vector_store
 
-    safe_session_id = "".join(c for c in session_id if c.isalnum() or c in ("-", "_"))
+    safe_session_id = sanitize_session_id(session_id)
 
     # 1. Delete session history file
     file_path = os.path.join(settings.sessions_dir, f"{safe_session_id}.json")
@@ -148,7 +148,7 @@ async def delete_session(session_id: str, settings: Annotated[Settings, Depends(
     # 2. Delete all vectors associated with this session
     try:
         store = get_vector_store()
-        store._collection.delete(where={"session_id": safe_session_id})
+        store.delete(where={"session_id": safe_session_id})
         logger.info("Deleted vectors for session: %s", safe_session_id)
     except Exception as e:
         logger.warning("Could not delete vectors for session %s: %s", safe_session_id, e)

@@ -94,7 +94,7 @@ async def delete_document(
     # 2. Remove vectors from ChromaDB
     try:
         store = get_vector_store()
-        store._collection.delete(where={"upload_id": document_id})
+        store.delete(where={"upload_id": document_id})
         logger.info("Removed vectors for document %s from ChromaDB", document_id)
     except Exception as e:
         logger.warning("Could not remove vectors for document %s: %s", document_id, e)

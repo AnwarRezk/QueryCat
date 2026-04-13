@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Paperclip, Loader2, CheckCircle, X, FileText, File } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../hooks/useToast';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -30,6 +31,7 @@ function getFileIcon(filename: string): React.ReactNode {
 }
 
 export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: ChatInputProps) {
+  const { error: showError } = useToast();
   const [text, setText] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -92,6 +94,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
         );
       }
     } catch {
+      showError(`Failed to upload ${pending.name}`);
       setPendingFiles(prev =>
         prev.map(p =>
           p.id === pending.id ? { ...p, status: 'error', error: 'Network error' } : p
@@ -113,10 +116,8 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
     // Add to pending list immediately
     setPendingFiles(prev => [...prev, ...newFiles]);
 
-    // Upload each immediately
-    for (const pending of newFiles) {
-      await uploadFile(pending);
-    }
+    // Upload all files in parallel
+    await Promise.all(newFiles.map(uploadFile));
 
     // Reset file input so same file can be reselected
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -129,7 +130,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
         await fetch(`/api/documents/${pending.documentId}`, { method: 'DELETE' });
         onUploadSuccess(); // Refresh sidebar doc list
       } catch {
-        // Ignore — remove from UI regardless
+        showError("Failed to delete document from server");
       }
     }
     setPendingFiles(prev => prev.filter(p => p.id !== pending.id));
@@ -158,7 +159,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg text-xs font-medium border transition-colors
+                className={`group/pill flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg text-xs font-medium border transition-colors relative
                   ${pf.status === 'success'
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
                     : pf.status === 'error'
@@ -180,8 +181,8 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
                   <button
                     type="button"
                     onClick={() => removeFile(pf)}
-                    title={pf.status === 'success' ? 'Remove from knowledge base' : 'Dismiss'}
-                    className="p-0.5 rounded hover:bg-white/10 transition-colors shrink-0"
+                    title={pf.status === 'success' ? 'Delete this document' : 'Dismiss'}
+                    className="p-0.5 rounded hover:bg-red-500/20 hover:text-red-400 transition-colors shrink-0"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -247,7 +248,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
 
       <div className="text-center mt-2">
         <p className="text-[11px] text-gray-500 font-medium">
-          QueryCat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
+          Query Cat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
         </p>
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import type { Message } from '../types';
+import { useToast } from './useToast';
 
 export function useChat() {
+  const { error: showError } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,21 +72,22 @@ export function useChat() {
                   } else if (dataObj.type === 'error') {
                     setError(dataObj.content);
                   }
-                } catch (e) {
-                  console.error('Failed to parse SSE JSON', dataStr, e);
+                } catch {
+                  // Silently skip malformed SSE lines
                 }
               }
             }
           }
         }
       }
-    } catch (err: any) {
-      console.error('Chat error:', err);
-      setError(err.message || 'An error occurred while chatting.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while chatting.';
+      showError(msg);
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -98,12 +101,12 @@ export function useChat() {
         const data = await res.json();
         setMessages(data.messages || []);
       }
-    } catch (err) {
-      console.error('Failed to fetch session', err);
+    } catch {
+      showError("Failed to load chat history");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   return { messages, sendMessage, isLoading, error, clearMessages, fetchSession };
 }

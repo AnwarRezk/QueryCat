@@ -1,0 +1,32 @@
+# Replace YOUR_DOMAIN.com or use IP if you don't have a domain yet.
+# Example: 116.202.12.34:80 (no https for raw IPs usually unless using custom certs)
+
+:80 {
+    # Serve the React SPA
+    root * /srv
+    file_server
+
+    # Proxy API requests to FastAPI backend
+    handle /api/* {
+        reverse_proxy backend:3001 {
+            # SSE streaming support
+            flush_interval -1
+            transport http {
+                read_timeout 300s
+            }
+        }
+    }
+
+    # SPA fallback — all non-API, non-file routes go to index.html
+    try_files {path} /index.html
+
+    # Compression
+    encode gzip zstd
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

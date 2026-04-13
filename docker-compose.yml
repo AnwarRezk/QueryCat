@@ -1,0 +1,51 @@
+services:
+  # ── FastAPI Backend ───────────────────────────
+  backend:
+    build: ./server
+    container_name: docchat-backend
+    restart: unless-stopped
+    env_file: ./server/.env
+    volumes:
+      - chroma_data:/app/chroma_data
+      - uploads:/app/uploads
+      - sessions:/app/sessions
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Caddy Reverse Proxy + Static Frontend ────
+  caddy:
+    image: caddy:2-alpine
+    container_name: docchat-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - frontend_dist:/srv
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ── Frontend Build (one-shot container) ───────
+  frontend-build:
+    build: ./client
+    container_name: docchat-frontend-build
+    volumes:
+      - frontend_dist:/output
+    command: sh -c "cp -r /app/dist/* /output/"
+
+volumes:
+  chroma_data:
+  uploads:
+  sessions:
+  caddy_data:
+  caddy_config:
+  frontend_dist:

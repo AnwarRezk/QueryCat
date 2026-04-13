@@ -104,7 +104,7 @@ _QA_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are DocChat, a helpful and expert AI assistant.
+            """You are QueryCat, a helpful and expert AI assistant.
 You can answer general questions as well as questions about uploaded documents.
 
 Rules:

@@ -2,7 +2,7 @@ services:
   # ── FastAPI Backend ───────────────────────────
   backend:
     build: ./server
-    container_name: docchat-backend
+    container_name: querycat-backend
     restart: unless-stopped
     env_file: ./server/.env
     volumes:
@@ -12,7 +12,7 @@ services:
     expose:
       - "3001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -20,7 +20,7 @@ services:
   # ── Caddy Reverse Proxy + Static Frontend ────
   caddy:
     image: caddy:2-alpine
-    container_name: docchat-caddy
+    container_name: querycat-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -37,7 +37,7 @@ services:
   # ── Frontend Build (one-shot container) ───────
   frontend-build:
     build: ./client
-    container_name: docchat-frontend-build
+    container_name: querycat-frontend-build
     volumes:
       - frontend_dist:/output
     command: sh -c "cp -r /app/dist/* /output/"

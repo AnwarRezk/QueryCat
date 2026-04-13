@@ -162,18 +162,18 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
                   ${pf.status === 'success'
                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
                     : pf.status === 'error'
-                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                    : pf.status === 'uploading'
-                    ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan'
-                    : 'bg-white/5 border-white/10 text-gray-300'
+                      ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                      : pf.status === 'uploading'
+                        ? 'bg-accent-cyan/10 border-accent-cyan/30 text-accent-cyan'
+                        : 'bg-white/5 border-white/10 text-gray-300'
                   }`}
                 title={pf.status === 'error' ? pf.error : pf.name}
               >
                 {pf.status === 'uploading'
                   ? <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                   : pf.status === 'success'
-                  ? <CheckCircle className="w-3 h-3 shrink-0" />
-                  : getFileIcon(pf.name)
+                    ? <CheckCircle className="w-3 h-3 shrink-0" />
+                    : getFileIcon(pf.name)
                 }
                 <span className="max-w-[120px] truncate">{pf.name}</span>
                 {pf.status !== 'uploading' && (
@@ -247,7 +247,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
 
       <div className="text-center mt-2">
         <p className="text-[11px] text-gray-500 font-medium">
-          DocChat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
+          QueryCat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
         </p>
       </div>
     </div>

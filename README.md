@@ -1,36 +1,34 @@
-# DocChat: Personal AI Document Assistant
+# QueryCat AI
 
-A full-stack Retrieval-Augmented Generation (RAG) application. Upload your PDFs and chat with an AI that understands their contents. 
+A minimal, high-performance RAG application for chatting with your personal documents with multi file upload support and reasoning
 
 ## Features
-* **Modern UI**: Dark-mode glassmorphism design with React, Vite, Tailwind CSS, and Framer Motion.
-* **Server-Sent Events (SSE)**: Real-time token streaming in the chat interface.
-* **FastAPI Backend**: Highly concurrent ASGI backend in Python.
-* **Vector Search**: Local ChromaDB instance with `all-MiniLM-L6-v2` embeddings.
-* **Model Flexibility**: Choose between OpenAI (GPT-4o) and Ollama (local, free) via `.env`.
+- **Scoped RAG**: Sessions are isolated; chat with specific documents per conversation.
+- **Multi-Format**: Native support for PDF, DOCX, and Markdown files.
+- **SSE Streaming**: Real-time token streaming with citation tracking.
+- **Hybrid AI**: Support for OpenAI (GPT-4o) or local models via Ollama.
+- **Modern UI**: Dark-mode glassmorphic interface built with React & Framer Motion.
 
-## Setup Instructions
+## Tech Stack
+- **Frontend**: React, Vite, Tailwind CSS v4.
+- **Backend**: FastAPI, LangChain, ChromaDB.
+- **Vector Model**: `all-MiniLM-L6-v2` (Local).
 
-### Prerequisites
-* Python 3.11+
-* Node.js 22+
-* (Optional) [Ollama](https://ollama.com/) if you want to run models locally for free.
+## Quick Start (Local Dev)
+1. **Initial Setup**:
+   ```bash
+   npm run install:all
+   ```
+2. **Configuration**:
+   Copy `server/.env.example` to `server/.env` and add your `OPENAI_API_KEY`.
+3. **Run**:
+   ```bash
+   npm run dev
+   ```
+   *Access at http://localhost:5173*
 
-### Backend Setup
-1. Open the `server` directory.
-2. Copy `.env.example` to `.env` and configure `USE_OPENAI` (True for OpenAI API, False for Ollama).
-3. Create a virtual environment: `python -m venv .venv && source .venv/bin/activate` or use your system python.
-4. Install requirements: `pip install -r requirements.txt`.
-
-### Frontend Setup
-1. Open the `client` directory.
-2. Run `npm install` to install React and Tailwind dependencies.
-
-### Running the App
-Run everything together from the root directory using `concurrently`:
+## Deployment (Docker)
+Deploy to any VPS in seconds using the baked-in Caddy reverse proxy:
 ```bash
-npm run install:all   # Installs frontend and backend deps
-npm run dev           # Starts both Vite client on 5173 and FastAPI on 3001
+docker compose up -d --build
 ```
-
-Once running, navigate to `http://localhost:5173` to use DocChat. 

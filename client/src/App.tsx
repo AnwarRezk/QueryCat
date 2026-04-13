@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 function App() {
   const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
   const [docUpdateCounter, setDocUpdateCounter] = useState(0);
+  const [sessionUpdateCounter, setSessionUpdateCounter] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const { messages, sendMessage, isLoading, error, clearMessages, fetchSession } = useChat();
@@ -31,7 +32,7 @@ function App() {
   const handleSend = async (text: string) => {
     await sendMessage(text, sessionId);
     // Force sidebar to refresh sessions
-    setDocUpdateCounter(c => c + 1);
+    setSessionUpdateCounter(c => c + 1);
   };
 
   // Auto scroll to bottom (only when messages exist)
@@ -49,6 +50,7 @@ function App() {
       <Sidebar 
         onNewChat={handleNewChat} 
         documentUpdateCounter={docUpdateCounter} 
+        sessionUpdateCounter={sessionUpdateCounter}
         currentSessionId={sessionId}
         onSelectSession={handleSelectSession}
       />

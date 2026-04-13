@@ -1,0 +1,77 @@
+[
+  {
+    "type": "human",
+    "data": {
+      "content": "What is the company that anwar rezk currently works in ?",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "human",
+      "name": null,
+      "id": null
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "Anwar Rezk currently works at Silicon Mind as a Full Stack Engineer.",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "ai",
+      "name": null,
+      "id": null,
+      "tool_calls": [],
+      "invalid_tool_calls": [],
+      "usage_metadata": null
+    }
+  },
+  {
+    "type": "human",
+    "data": {
+      "content": "What is his tech stack ?",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "human",
+      "name": null,
+      "id": null
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "Anwar Rezk's tech stack includes:\n\n### Languages:\n- Python\n- Java\n- C\n- C#\n- JavaScript\n- TypeScript\n- SQL\n- Shell/Bash\n- HTML\n- CSS\n\n### Technologies:\n- React\n- Vue.js\n- Node.js\n- Rails\n- Springboot\n- MongoDB\n- PostgreSQL\n- MySQL\n- Docker\n- Kubernetes\n- Docker Swarm\n- Microsoft Azure\n- Git\n- GitHub\n- Bitbucket\n- Jenkins\n- VMware\n- Datadog\n- SCSS\n- Bootstrap\n- Tailwind CSS\n- Bulma\n- Webpack\n- Redis\n- Kafka\n- Prometheus\n- Grafana\n\n### Methodologies:\n- Agile\n- Scrum\n- Design Patterns\n- OOP\n- Data Structures & Algorithms\n- OAuth 1.0a/2.0\n- SAML\n- JWT\n- RESTful APIs",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "ai",
+      "name": null,
+      "id": null,
+      "tool_calls": [],
+      "invalid_tool_calls": [],
+      "usage_metadata": null
+    }
+  },
+  {
+    "type": "human",
+    "data": {
+      "content": "What is his GPA ?",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "human",
+      "name": null,
+      "id": null
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "Anwar Rezk's GPA is 3.74 out of 4.0.",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "ai",
+      "name": null,
+      "id": null,
+      "tool_calls": [],
+      "invalid_tool_calls": [],
+      "usage_metadata": null
+    }
+  }
+]

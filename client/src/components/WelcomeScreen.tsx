@@ -33,7 +33,7 @@ export function WelcomeScreen({ onExampleClick }: WelcomeScreenProps) {
         transition={{ delay: 0.2, duration: 0.8 }}
         className="text-2xl lg:text-4xl font-semibold mb-2 lg:mb-4 text-gradient"
       >
-        Welcome to Query Cat
+        <span style={{ fontFamily: '"Bitcount Grid Double", monospace' }}>Welcome to Query Cat</span>
       </motion.h1>
 
       <motion.p

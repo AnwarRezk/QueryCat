@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'framer-motion';
-import { User, Bot, FileText, Plus } from 'lucide-react';
+import { User, Cat, FileText, Plus } from 'lucide-react';
 import type { Message } from '../types';
 import { Modal } from './Modal';
 
@@ -30,7 +30,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1 
             ${isUser ? 'bg-gradient-glow ml-3' : 'glass-panel border-white/10 mr-3'}`}
           >
-            {isUser ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-accent-cyan" />}
+            {isUser ? <User className="w-5 h-5 text-white" /> : <Cat className="w-5 h-5 text-accent-cyan" />}
           </div>
           
           {/* Bubble */}

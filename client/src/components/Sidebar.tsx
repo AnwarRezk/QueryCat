@@ -7,11 +7,12 @@ import { useToast } from '../hooks/useToast';
 interface SidebarProps {
   onNewChat: () => void;
   documentUpdateCounter: number;
+  sessionUpdateCounter: number;
   currentSessionId?: string;
   onSelectSession?: (id: string, title?: string) => void;
 }
 
-export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, onSelectSession }: SidebarProps) {
+export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter, currentSessionId, onSelectSession }: SidebarProps) {
   const { error: showError } = useToast();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [sessions, setSessions] = useState<{ id: string, title: string }[]>([]);
@@ -20,8 +21,11 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
 
   useEffect(() => {
     fetchDocuments();
-    fetchSessions();
   }, [documentUpdateCounter, currentSessionId]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [sessionUpdateCounter, currentSessionId]);
 
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
@@ -91,9 +95,9 @@ export function Sidebar({ onNewChat, documentUpdateCounter, currentSessionId, on
       {/* Brand Header */}
       <div className="flex items-center space-x-3 px-2 mb-8 mt-2">
         <div className="w-8 h-8 rounded-lg bg-gradient-glow flex items-center justify-center">
-          <Cat className="w-5 h-5 text-white" />
+          <Cat className="w-6 h-6 text-white" />
         </div>
-        <span className="text-xl font-semibold tracking-tight text-white">Query Cat</span>
+        <span className="text-2xl font-regular tracking-tight text-white" style={{ fontFamily: '"Bitcount Grid Double", monospace' }}>Query Cat</span>
       </div>
 
       {/* New Chat Button */}

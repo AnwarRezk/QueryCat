@@ -82,7 +82,11 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
           prev.map(p => p.id === pending.id ? { ...p, status: 'success', documentId } : p)
         );
         onUploadSuccess();
-        // Do NOT auto-clear — keep pill visible so user can remove it
+        
+        // Auto clear after 10 seconds
+        setTimeout(() => {
+          setPendingFiles(prev => prev.filter(p => p.id !== pending.id));
+        }, 10000);
       } else {
         const result = data.results?.[0];
         setPendingFiles(prev =>

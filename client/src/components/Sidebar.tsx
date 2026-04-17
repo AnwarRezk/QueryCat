@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, MessageSquare, FileText, Database, Cat, Clock, Trash2 } from 'lucide-react';
+import { Plus, MessageSquare, FileText, Database, Cat, Clock, Trash2, X } from 'lucide-react';
 import type { DocumentMetadata } from '../types';
 import { useToast } from '../hooks/useToast';
 
@@ -10,9 +10,11 @@ interface SidebarProps {
   sessionUpdateCounter: number;
   currentSessionId?: string;
   onSelectSession?: (id: string, title?: string) => void;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter, currentSessionId, onSelectSession }: SidebarProps) {
+export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter, currentSessionId, onSelectSession, isMobile, onClose }: SidebarProps) {
   const { error: showError } = useToast();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [sessions, setSessions] = useState<{ id: string, title: string }[]>([]);
@@ -90,14 +92,20 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
   };
 
   return (
-    <div className="w-72 h-full flex flex-col bg-black/40 border-r border-white/5 backdrop-blur-3xl shrink-0 p-4 relative z-10 transition-transform">
-
+    <div className={`${isMobile ? 'w-full' : 'w-64 lg:w-72'} h-full flex flex-col bg-black/40 border-r border-white/5 backdrop-blur-3xl shrink-0 p-3 sm:p-4 relative z-10 transition-transform`}>
       {/* Brand Header */}
-      <div className="flex items-center space-x-3 px-2 mb-8 mt-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-glow flex items-center justify-center">
-          <Cat className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between px-2 mb-5 md:mb-6 lg:mb-8 mt-2">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-glow flex items-center justify-center">
+            <Cat className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-regular tracking-tight text-white" style={{ fontFamily: '"Bitcount Grid Double", monospace' }}>Query Cat</span>
         </div>
-        <span className="text-2xl font-regular tracking-tight text-white" style={{ fontFamily: '"Bitcount Grid Double", monospace' }}>Query Cat</span>
+        {isMobile && onClose && (
+          <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors" aria-label="Close menu">
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* New Chat Button */}
@@ -105,7 +113,7 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onNewChat}
-        className="flex items-center justify-between w-full p-3 mb-6 glass-panel border border-white/10 hover:border-accent-cyan/50 hover:bg-surface-hover transition-colors group"
+        className="flex items-center justify-between w-full p-3 mb-4 md:mb-6 glass-panel border border-white/10 hover:border-accent-cyan/50 hover:bg-surface-hover transition-colors group"
       >
         <div className="flex items-center space-x-3">
           <MessageSquare className="w-5 h-5 text-gray-400 group-hover:text-accent-cyan transition-colors" />
@@ -145,7 +153,7 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
                   </div>
                   <button
                     onClick={(e) => handleDeleteSession(e, s.id)}
-                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-md transition-all text-red-400"
+                    className="p-1.5 md:opacity-0 md:group-hover:opacity-100 hover:bg-white/10 rounded-md transition-all text-red-400"
                     title="Delete Chat"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -194,7 +202,7 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
                   <button
                     onClick={(e) => handleDeleteDocument(e, doc.id)}
                     disabled={deletingDocId === doc.id}
-                    className="p-1.5 opacity-0 group-hover/doc:opacity-100 hover:bg-white/10 rounded-md transition-all text-red-400 shrink-0 disabled:opacity-50"
+                    className="p-1.5 md:opacity-0 md:group-hover/doc:opacity-100 hover:bg-white/10 rounded-md transition-all text-red-400 shrink-0 disabled:opacity-50"
                     title="Delete document from knowledge base"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

@@ -54,11 +54,11 @@
 body {
   margin: 0;
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   min-width: 100vw;
   background-color: #0d0d0f;
   color: rgba(255, 255, 255, 0.87);
-  overflow: hidden;
+  overflow-x: hidden;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-image: 
     radial-gradient(circle at 15% 50%, rgba(124, 58, 237, 0.08), transparent 25%),
@@ -104,7 +104,28 @@ body {
 .prose pre {
   background-color: rgba(0, 0, 0, 0.3) !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: auto;
+  max-width: 100%;
 }
 .prose code {
   color: #f472b6;
+}
+.prose p,
+.prose li,
+.prose span,
+.prose a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.prose a {
+  overflow-wrap: break-word;
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+.prose table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
 }

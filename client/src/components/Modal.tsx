@@ -14,7 +14,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-3xl'
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
           {/* Backdrop */}
           <motion.div 
             initial={{ opacity: 0 }} 
@@ -29,11 +29,11 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-3xl'
             initial={{ opacity: 0, scale: 0.95, y: 20 }} 
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative w-full ${maxWidth} max-h-[85vh] flex flex-col glass-panel bg-surface/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden`}
+            className={`relative w-full ${maxWidth} max-h-[85dvh] sm:max-h-[85vh] flex flex-col glass-panel bg-surface/95 border border-white/10 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0 bg-black/20">
-              <h3 className="text-lg font-medium text-white flex items-center gap-2">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 shrink-0 bg-black/20">
+              <h3 className="text-base sm:text-lg font-medium text-white flex items-center gap-2">
                 {title}
               </h3>
               <button 
@@ -46,7 +46,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-3xl'
             </div>
             
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 scrollbar-hide">
               {children}
             </div>
           </motion.div>

@@ -180,7 +180,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
                     ? <CheckCircle className="w-3 h-3 shrink-0" />
                     : getFileIcon(pf.name)
                 }
-                <span className="max-w-[120px] truncate">{pf.name}</span>
+                <span className="max-w-[80px] sm:max-w-[120px] truncate">{pf.name}</span>
                 {pf.status !== 'uploading' && (
                   <button
                     type="button"
@@ -200,7 +200,7 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
       {/* Input Form */}
       <form
         onSubmit={handleSubmit}
-        className="relative flex items-end w-full glass-panel border focus-within:border-accent-cyan/50 transition-colors p-2"
+        className="relative flex items-end w-full glass-panel border focus-within:border-accent-cyan/50 transition-colors p-1.5 sm:p-2"
       >
         <textarea
           ref={textareaRef}
@@ -209,12 +209,12 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
           onKeyDown={handleKeyDown}
           disabled={disabled}
           placeholder="Ask a question, or attach a document with the 📎 icon..."
-          className="w-full max-h-48 min-h-[44px] bg-transparent text-white placeholder-gray-500 rounded-xl resize-none py-3 pl-14 pr-14 focus:outline-none scrollbar-hide"
+          className="w-full max-h-48 min-h-[44px] bg-transparent text-white text-sm sm:text-base placeholder-gray-500 placeholder:text-xs sm:placeholder:text-sm rounded-xl resize-none py-2.5 sm:py-3 pl-11 sm:pl-14 pr-11 sm:pr-14 focus:outline-none scrollbar-hide"
           rows={1}
         />
 
         {/* Paperclip attachment button */}
-        <div className="absolute left-3 bottom-3">
+        <div className="absolute left-2 sm:left-3 bottom-2 sm:bottom-3">
           <input
             type="file"
             ref={fileInputRef}
@@ -231,8 +231,8 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
             className="p-2 text-gray-400 hover:text-accent-cyan rounded-xl hover:bg-white/5 transition-all outline-none group relative"
           >
             <Paperclip className="w-5 h-5" />
-            {/* Tooltip */}
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-black/80 text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10">
+            {/* Tooltip - hidden on touch devices */}
+            <span className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-black/80 text-white text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10">
               Attach PDF, DOCX, or MD
             </span>
           </button>
@@ -244,14 +244,14 @@ export function ChatInput({ onSend, onUploadSuccess, sessionId, disabled }: Chat
           whileTap={{ scale: 0.95 }}
           type="submit"
           disabled={!text.trim() || disabled}
-          className="absolute right-3 bottom-3 p-2 rounded-xl bg-gradient-glow text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-cyan/20 flex-shrink-0"
+          className="absolute right-2 sm:right-3 bottom-2 sm:bottom-3 p-2 rounded-xl bg-gradient-glow text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-cyan/20 flex-shrink-0"
         >
           <ArrowUp className="w-5 h-5" />
         </motion.button>
       </form>
 
-      <div className="text-center mt-2">
-        <p className="text-[11px] text-gray-500 font-medium">
+      <div className="text-center mt-2 mb-2 sm:mb-0">
+        <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium px-2">
           Query Cat can make mistakes. Attach PDF, DOCX, or MD files to ground answers in your documents.
         </p>
       </div>

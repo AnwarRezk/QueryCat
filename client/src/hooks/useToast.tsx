@@ -1,42 +1,46 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle, Info } from 'lucide-react';
-
-interface Toast {
-  id: string;
-  message: string;
-  type: 'error' | 'success' | 'info';
-}
-
-interface ToastContextType {
-  toast: (message: string, type?: Toast['type']) => void;
-  error: (message: string) => void;
-  success: (message: string) => void;
-  info: (message: string) => void;
-  dismiss: (id: string) => void;
-}
-
-const ToastContext = createContext<ToastContextType | null>(null);
-
-export function useToast(): ToastContextType {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within a ToastProvider');
-  return ctx;
-}
+import { ToastContext, type Toast } from './toast-context';
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastTimeoutsRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const timeouts = toastTimeoutsRef.current;
+
+    return () => {
+      for (const timeoutId of timeouts.values()) {
+        window.clearTimeout(timeoutId);
+      }
+      timeouts.clear();
+    };
+  }, []);
 
   const toast = useCallback((message: string, type: Toast['type'] = 'error') => {
-    const id = `${Date.now()}-${Math.random()}`;
+    const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
     setToasts(prev => [...prev, { id, message, type }]);
+
     // Auto-dismiss after 5s
-    setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
+      toastTimeoutsRef.current.delete(id);
     }, 5000);
+
+    toastTimeoutsRef.current.set(id, timeoutId);
   }, []);
 
   const dismiss = useCallback((id: string) => {
+    const timeoutId = toastTimeoutsRef.current.get(id);
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+      toastTimeoutsRef.current.delete(id);
+    }
+
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
@@ -61,28 +65,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* Toast Container */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-4 z-50 flex flex-col gap-2 w-[calc(100vw-1.5rem)] max-w-sm md:max-w-80 pointer-events-none">
-        <AnimatePresence>
-          {toasts.map(t => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, x: 40, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 40, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className={`pointer-events-auto flex items-start gap-3 p-3 rounded-xl border backdrop-blur-xl shadow-2xl ${BORDER[t.type]}`}
-            >
-              {ICONS[t.type]}
-              <p className="text-sm text-gray-200 flex-1 leading-snug">{t.message}</p>
-              <button
-                onClick={() => dismiss(t.id)}
-                className="p-0.5 rounded hover:bg-white/10 transition-colors shrink-0 text-gray-400 hover:text-white"
+      <div className="fixed top-[max(env(safe-area-inset-top),0.5rem)] left-[var(--chat-pane-left-offset)] right-0 z-[70] flex justify-center px-3 sm:px-4 pointer-events-none">
+        <div className="flex w-full max-w-md flex-col gap-2">
+          <AnimatePresence>
+            {toasts.map(t => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className={`pointer-events-auto flex items-start gap-3 p-3 rounded-xl border backdrop-blur-xl shadow-2xl ${BORDER[t.type]}`}
               >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                {ICONS[t.type]}
+                <p className="text-sm text-gray-200 flex-1 leading-snug">{t.message}</p>
+                <button
+                  onClick={() => dismiss(t.id)}
+                  aria-label="Dismiss notification"
+                  className="p-0.5 rounded hover:bg-white/10 transition-colors shrink-0 text-gray-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     </ToastContext.Provider>
   );

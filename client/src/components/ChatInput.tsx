@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Paperclip, Loader2, CheckCircle, X, FileText, File } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useToast } from '../hooks/useToast';
+import { useToast } from '../hooks/toast-context';
 
 interface ChatInputProps {
   onSend: (message: string) => void;

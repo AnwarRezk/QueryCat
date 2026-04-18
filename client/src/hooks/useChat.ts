@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Message } from '../types';
-import { useToast } from './useToast';
+import { useToast } from './toast-context';
 
 export function useChat() {
   const { error: showError } = useToast();
@@ -15,10 +15,7 @@ export function useChat() {
     setError(null);
 
     const responseId = (Date.now() + 1).toString();
-    setMessages((prev) => [
-      ...prev,
-      { role: 'ai', content: '', id: responseId, sources: [] }
-    ]);
+    let pendingSources: Message['sources'] = [];
 
     try {
       const response = await fetch('/api/chat', {
@@ -36,47 +33,86 @@ export function useChat() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let done = false;
+      let sseBuffer = '';
+
+      const processSseLine = (rawLine: string): boolean => {
+        const line = rawLine.trim();
+        if (!line.startsWith('data:')) return false;
+
+        const dataStr = line.slice(5).trim();
+        if (!dataStr) return false;
+
+        if (dataStr === '[DONE]') {
+          return true;
+        }
+
+        try {
+          const dataObj = JSON.parse(dataStr);
+          if (dataObj.type === 'token') {
+            const token = typeof dataObj.content === 'string' ? dataObj.content : '';
+            if (!token) return false;
+
+            setMessages((prev) =>
+              prev.some((msg) => msg.id === responseId)
+                ? prev.map((msg) =>
+                    msg.id === responseId
+                      ? { ...msg, content: msg.content + token }
+                      : msg
+                  )
+                : [...prev, { role: 'ai', content: token, id: responseId, sources: pendingSources }]
+            );
+          } else if (dataObj.type === 'sources') {
+            const documents = Array.isArray(dataObj.documents) ? dataObj.documents : [];
+            pendingSources = documents;
+
+            setMessages((prev) =>
+              prev.some((msg) => msg.id === responseId)
+                ? prev.map((msg) =>
+                    msg.id === responseId
+                      ? { ...msg, sources: documents }
+                      : msg
+                  )
+                : prev
+            );
+          } else if (dataObj.type === 'error') {
+            const streamErr =
+              typeof dataObj.content === 'string' && dataObj.content.trim()
+                ? dataObj.content
+                : 'An error occurred while chatting.';
+            showError(streamErr);
+            setError(streamErr);
+          }
+        } catch {
+          // Silently skip malformed SSE lines
+        }
+
+        return false;
+      };
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
         done = readerDone;
         if (value) {
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          sseBuffer += decoder.decode(value, { stream: true });
+          const lines = sseBuffer.split('\n');
+          sseBuffer = lines.pop() ?? '';
+
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.slice(6).trim();
-              if (dataStr === '[DONE]') {
-                done = true;
-                break;
-              }
-              if (dataStr) {
-                try {
-                  const dataObj = JSON.parse(dataStr);
-                  if (dataObj.type === 'token') {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === responseId
-                          ? { ...msg, content: msg.content + dataObj.content }
-                          : msg
-                      )
-                    );
-                  } else if (dataObj.type === 'sources') {
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === responseId
-                          ? { ...msg, sources: dataObj.documents }
-                          : msg
-                      )
-                    );
-                  } else if (dataObj.type === 'error') {
-                    setError(dataObj.content);
-                  }
-                } catch {
-                  // Silently skip malformed SSE lines
-                }
-              }
+            if (processSseLine(line)) {
+              done = true;
+              break;
             }
+          }
+        }
+      }
+
+      // Flush any trailing decoder bytes and a final buffered line when stream closes.
+      sseBuffer += decoder.decode();
+      if (sseBuffer.trim()) {
+        const trailingLines = sseBuffer.split('\n');
+        for (const line of trailingLines) {
+          if (processSseLine(line)) {
+            break;
           }
         }
       }

@@ -8,17 +8,25 @@ import { useChat } from './hooks/useChat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
 
+const createSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 function App() {
-  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState<string>(() => createSessionId());
   const [docUpdateCounter, setDocUpdateCounter] = useState(0);
   const [sessionUpdateCounter, setSessionUpdateCounter] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const { messages, sendMessage, isLoading, error, clearMessages, fetchSession } = useChat();
+  const { messages, sendMessage, isLoading, clearMessages, fetchSession } = useChat();
 
   const handleNewChat = () => {
-    setSessionId(crypto.randomUUID());
+    setSessionId(createSessionId());
     clearMessages();
     setSidebarOpen(false);
   };
@@ -142,21 +150,13 @@ function App() {
                       <TypingIndicator />
                     </motion.div>
                   )}
-                  {error && (
-                    <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="p-3 md:p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mx-auto my-4 max-w-xl text-center"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
                 </AnimatePresence>
               </div>
             </div>
           )}
 
           {/* Fixed Input Area */}
-          <div className="shrink-0 w-full bg-background pb-[env(safe-area-inset-bottom,0px)] pb-3 md:pb-4 lg:pb-6 pt-2 px-3 sm:px-4 lg:px-4 z-20 flex flex-col items-center justify-end">
+          <div className="shrink-0 w-full bg-background pb-[max(env(safe-area-inset-bottom),0.75rem)] md:pb-4 lg:pb-6 pt-2 px-3 sm:px-4 lg:px-4 z-20 flex flex-col items-center justify-end">
             <div className="w-full max-w-4xl mx-auto flex flex-col">
               <ChatInput onSend={handleSend} onUploadSuccess={handleUploadSuccess} sessionId={sessionId} disabled={isLoading} />
             </div>

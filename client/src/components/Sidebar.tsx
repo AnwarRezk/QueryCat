@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, MessageSquare, FileText, Database, Cat, Clock, Trash2, X } from 'lucide-react';
 import type { DocumentMetadata } from '../types';
-import { useToast } from '../hooks/useToast';
+import { useToast } from '../hooks/toast-context';
 
 interface SidebarProps {
   onNewChat: () => void;
@@ -14,6 +14,23 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+const DEV_EFFECT_DEDUPE_WINDOW_MS = 1200;
+const recentDocsEffectRuns = new Map<string, number>();
+const recentSessionsEffectRuns = new Map<string, number>();
+
+// In React StrictMode (dev-only), mount effects intentionally run twice.
+const shouldSkipDevDuplicate = (cache: Map<string, number>, key: string): boolean => {
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+
+  const now = Date.now();
+  const previous = cache.get(key);
+  cache.set(key, now);
+
+  return previous !== undefined && now - previous < DEV_EFFECT_DEDUPE_WINDOW_MS;
+};
+
 export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter, currentSessionId, onSelectSession, isMobile, onClose }: SidebarProps) {
   const { error: showError } = useToast();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
@@ -21,15 +38,7 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [documentUpdateCounter, currentSessionId]);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [sessionUpdateCounter, currentSessionId]);
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setIsLoadingDocs(true);
     try {
       // Scope document list to the current session
@@ -46,9 +55,9 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
     } finally {
       setIsLoadingDocs(false);
     }
-  };
+  }, [currentSessionId, showError]);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       const res = await fetch('/api/chat/sessions');
       if (res.ok) {
@@ -58,7 +67,25 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
     } catch {
       showError("Failed to load recent chats");
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    const docsEffectKey = `${currentSessionId ?? 'all'}:${documentUpdateCounter}`;
+    if (shouldSkipDevDuplicate(recentDocsEffectRuns, docsEffectKey)) {
+      return;
+    }
+
+    fetchDocuments();
+  }, [documentUpdateCounter, currentSessionId, fetchDocuments]);
+
+  useEffect(() => {
+    const sessionsEffectKey = `${currentSessionId ?? 'all'}:${sessionUpdateCounter}`;
+    if (shouldSkipDevDuplicate(recentSessionsEffectRuns, sessionsEffectKey)) {
+      return;
+    }
+
+    fetchSessions();
+  }, [sessionUpdateCounter, currentSessionId, fetchSessions]);
 
   const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -213,6 +240,10 @@ export function Sidebar({ onNewChat, documentUpdateCounter, sessionUpdateCounter
           )}
         </div>
 
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-white/5 text-center">
+        <p className="text-[11px] text-gray-500 tracking-wide">Built by Anwar</p>
       </div>
     </div>
   );
